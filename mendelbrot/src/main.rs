@@ -48,6 +48,7 @@ fn main() {
             }
         });
     }
+    
     write_bitmap(&args[1], &pixels[..], bounds).expect("error writing PNG file");
 
 }
