@@ -13,22 +13,23 @@ use std::io::{Result,Write};
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
-    if args.len() != 5{
+    if args.len() != 6{
         writeln!(std::io::stderr(),
-                "Usage: {} FILE PIXELS UPPERLEFT LOWERRIGHT", args[0]).unwrap();
+                "Usage: {} FILE PIXELS UPPERLEFT LOWERRIGHT LIMIT_RADIUS", args[0]).unwrap();
         writeln!(std::io::stderr(),
-                "Example: {} mandel.png 1920x1080 -1.20,0.35 -1,0.20", args[0]).unwrap();
+                "Example: {} mandel.png 1920x1080 -1.20,0.35 -1,0.20 255_4.0", args[0]).unwrap();
         std::process::exit(1);
     }
 
     let bounds = parse_pair(&args[2], 'x').expect("error parsing image dimensions");
     let upper_left = parse_pair(&args[3], ',').expect("Error parsing upperleft corner point");
     let lower_right = parse_pair(&args[4], ',').expect("error parsing lower right corner point");
+    let limits = parse_pair(&args[5], '_').expect("error parsing iteration limit and radius");
 
     let mut pixels = vec![0; bounds.0 * bounds.1];
 
     /*
-    render(&mut pixels[..], bounds, upper_left, lower_right);
+    render(&mut pixels[..], bounds, upper_left, lower_right,limit);
     */
 
     let threads = 8;
@@ -43,12 +44,12 @@ fn main() {
                 let band_upper_left = pixel_to_point(bounds, (0,top), upper_left, lower_right);
                 let band_lower_right = pixel_to_point(bounds, (bounds.0, top+height), upper_left, lower_right);
                 scope.spawn(move||{
-                    render(band, band_bounds,band_upper_left,band_lower_right);
+                    render(band, band_bounds,band_upper_left,band_lower_right, limits);
                 });
             }
         });
     }
-    
+
     write_bitmap(&args[1], &pixels[..], bounds).expect("error writing PNG file");
 
 }
@@ -61,7 +62,7 @@ fn main() {
 ///
 /// If `s` has the proper form, return `Some<(x, y)>`. If it doesn't parse
 /// correctly, return `None`.
-fn parse_pair<T:FromStr>(s: &str, separator: char) -> Option<(T,T)> {
+fn parse_pair<T:FromStr>(s: &str, separator: char) -> Option<(T,T)> { //only one argument
     match s.find(separator){
         None => None,
         Some(index)=> {
@@ -118,11 +119,11 @@ fn test_pixel_to_point() {
 ///
 /// If the number does leave the circle before we give up, return `Some(i)`, where
 /// `i` is the number of iterations it took.
-fn escapes(c: Complex<f64>, limit: u32) -> Option<u32> {
+fn escapes(c: Complex<f64>, limit: f64, radius: f64) -> Option<u32> { //giving the limit and radius arguments
     let mut z = Complex{re: 0.0, im: 0.0};
-    for i in 0.. limit{
+    for i in 0.. limit as u32{ //using limit casting to u32 as f64 is not suitable for iteration
         z = z*z +c;
-        if z.norm_sqr() > 4.0{
+        if z.norm_sqr() > radius{ //radius used here
             return Some(i);
         }
     }
@@ -135,16 +136,16 @@ fn escapes(c: Complex<f64>, limit: u32) -> Option<u32> {
 /// which holds one grayscale pixel per byte. The `upper_left` and `lower_right`
 /// arguments specify points on the complex plane corresponding to the upper
 /// left and lower right corners of the pixel buffer.
-fn render(pixels: &mut [u8], bounds: (usize, usize), upper_left: (f64, f64), lower_right: (f64, f64)) {
+fn render(pixels: &mut [u8], bounds: (usize, usize), upper_left: (f64, f64), lower_right: (f64, f64), limit:(f64, f64)) { //adding limit arguments
     assert!(pixels.len() == bounds.0 * bounds.1);
 
     for r in 0.. bounds.1{
         for c in 0.. bounds.0{
             let point = pixel_to_point(bounds, (c,r), upper_left, lower_right);
             pixels[r*bounds.0 + c] =
-                match escapes(Complex{re: point.0, im: point.1}, 255){
+                match escapes(Complex{re: point.0, im: point.1}, limit.0, limit.1){ //using limit tupple in this
                     None=> 0,
-                    Some(count) => 255 - count as u8
+                    Some(count) => limit.0 as u8 - count as u8 //casting limit f64 to u8 cutting of the range expected
                 };
         }
     }
