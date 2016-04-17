@@ -40,6 +40,29 @@ impl<T> Callbacks<T> {
     //}
 }
 
+trait Foo {
+    fn f(&self);
+}
+
+trait Bar {
+    fn f(&self);
+}
+
+struct Baz;
+
+impl Foo for Baz {
+    fn f(&self) { println!("Baz’s impl of Foo"); }
+}
+
+impl Bar for Baz {
+    fn f(&self) { println!("Baz’s impl of Bar"); }
+}
+
+impl Foo {
+    fn foo() ->(){
+        println!("standalone Foo");
+        }
+}
 pub fn main(){
     let mut c = Callbacks::new();
     c.register(Box::new(|val| println!("Callback 1 : {}", val)));
@@ -53,5 +76,13 @@ pub fn main(){
         });
         d.call(1);d.call(2);d.call(3);
     }
+
+
+
+    let b = Baz;
+    Bar::f(&b);
+    Foo::f(&b);
+    <Baz as Bar>::f(&b); //Using the angle bracket syntax lets you call the trait method instead of the inherent one.
+    Foo::foo();
 
 }
