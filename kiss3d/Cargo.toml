@@ -1,0 +1,7 @@
+[package]
+name = "kiss3d"
+version = "0.1.0"
+authors = ["lunarpulse <lunarpulse@gmail.com>"]
+
+[dependencies.kiss3d]
+git = "https://github.com/sebcrozet/kiss3d"

@@ -4,7 +4,6 @@ use std::str::FromStr;
 fn main() {
     println!("Hello, world!");
     //println!("{:?}",gcd(2*5*17*19, 3*7*9*13*17*27) );
-
     let mut input_numbers = Vec::new();
 
     for arg in std::env::args().skip(1){
